@@ -1,0 +1,74 @@
+services:
+  postgres:
+    image: 'postgres:15-alpine'
+    container_name: typeahead-postgres
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: secret
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - typeahead-network
+
+  redis-node-1:
+    image: 'redis:7-alpine'
+    container_name: redis-node-1
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-node-1-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - typeahead-network
+
+  redis-node-2:
+    image: 'redis:7-alpine'
+    container_name: redis-node-2
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis-node-2-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - typeahead-network
+
+  redis-node-3:
+    image: 'redis:7-alpine'
+    container_name: redis-node-3
+    ports:
+      - '6381:6379'
+    volumes:
+      - redis-node-3-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - typeahead-network
+
+volumes:
+  postgres-data:
+  redis-node-1-data:
+  redis-node-2-data:
+  redis-node-3-data:
+
+networks:
+  typeahead-network:
+    driver: bridge
