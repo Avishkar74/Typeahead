@@ -38,4 +38,10 @@ public class VirtualTimeManager {
     public synchronized LocalDateTime getAppStartRealTime() {
         return appStartRealTime;
     }
+
+    public synchronized void advanceVirtualTime(Duration duration) {
+        if (duration != null) {
+            this.savedVirtualTime = this.savedVirtualTime.plus(duration);
+        }
+    }
 }
