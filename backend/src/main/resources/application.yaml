@@ -2,6 +2,9 @@ server:
   port: 8080
 
 spring:
+  docker:
+    compose:
+      enabled: false
   application:
     name: backend
   datasource:
@@ -37,3 +40,16 @@ app:
       - localhost:6381
   virtual-time:
     reference-date: "2006-05-31T23:59:56"
+  dataset-import:
+    enabled: false
+    queries-file-path: "dataset/queries_count.csv"
+    logs-file-path: "dataset/search_logs.csv"
+
+management:
+  endpoint:
+    shutdown:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: shutdown,info,health

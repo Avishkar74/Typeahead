@@ -119,14 +119,26 @@ public class BatchWriter {
     }
 
     private void updateQueriesFromCounts(Map<String, Integer> counts, LocalDateTime currentVirtualTime) {
+        if (counts.isEmpty()) {
+            return;
+        }
+
+        // 1. Bulk load existing Query entities in one database roundtrip
+        List<Query> existingQueries = queryRepository.findAllByQueryLowerIn(counts.keySet());
+        Map<String, Query> queryMap = new HashMap<>();
+        for (Query q : existingQueries) {
+            queryMap.put(q.getQueryLower(), q);
+        }
+
+        List<Query> toSave = new ArrayList<>();
+
+        // 2. Perform updates/inserts using the map
         for (Map.Entry<String, Integer> entry : counts.entrySet()) {
             String queryLower = entry.getKey();
             int count = entry.getValue();
 
-            Optional<Query> queryOpt = queryRepository.findByQueryLower(queryLower);
-            Query query;
-            if (queryOpt.isPresent()) {
-                query = queryOpt.get();
+            Query query = queryMap.get(queryLower);
+            if (query != null) {
                 query.setGlobalCount(query.getGlobalCount() + count);
 
                 LocalDateTime lastSearched = query.getLastSearchedAt();
@@ -164,8 +176,11 @@ public class BatchWriter {
             query.setTrendingScore(BigDecimal.valueOf(score));
             query.setTrendingScoreCalculatedAt(currentVirtualTime);
 
-            queryRepository.save(query);
+            toSave.add(query);
         }
+
+        // 3. Save all updated/new queries in bulk
+        queryRepository.saveAll(toSave);
     }
 
     private void invalidatePrefixes(List<String> queryKeys) {

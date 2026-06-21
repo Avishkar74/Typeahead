@@ -260,7 +260,7 @@ public class DatasetLoader {
             }
 
             parts[0] = line.substring(0, idx).trim();
-            if (parts[0].isEmpty()) {
+            if (parts[0].isEmpty() || parts[0].length() > 255) {
                 return null;
             }
 
@@ -286,7 +286,7 @@ public class DatasetLoader {
             }
 
             String queryText = line.substring(0, idx).trim();
-            if (queryText.isEmpty()) {
+            if (queryText.isEmpty() || queryText.length() > 255) {
                 return null;
             }
 

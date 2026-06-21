@@ -32,7 +32,7 @@ class SystemConfigRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        systemConfigRepository.deleteAll();
+        systemConfigRepository.deleteAllInBatch();
 
         // Seed config
         SystemConfig config = new SystemConfig();

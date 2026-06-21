@@ -24,20 +24,37 @@ public class SearchService {
 
     @Transactional
     public void submitSearch(String queryText) {
-        if (queryText == null || queryText.trim().isEmpty()) {
-            throw new IllegalArgumentException("Query text cannot be null or empty");
+        if (queryText == null) {
+            throw new IllegalArgumentException("Query text cannot be null");
+        }
+        if (queryText.trim().isEmpty()) {
+            throw new IllegalArgumentException("Query text cannot be blank");
+        }
+        if (queryText.length() > 255) {
+            throw new IllegalArgumentException("Query text must not exceed 255 characters");
         }
 
         String normalized = queryText.toLowerCase().trim();
 
-        // 1. Log query using virtual timestamp (as documented in VIRTUAL_TIME_MANAGEMENT.md)
+        // 1. Log query using virtual timestamp
         SearchLog log = new SearchLog();
         log.setQueryText(queryText);
         log.setQueryLower(normalized);
         log.setVirtualSearchedAt(virtualTimeManager.getVirtualTime());
         searchLogRepository.save(log);
 
-        // 2. Add to in-memory batch write buffer
-        batchBuffer.addSearch(queryText);
+        // 2. Add to in-memory batch write buffer only after successful transaction commit
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        batchBuffer.addSearch(queryText);
+                    }
+                }
+            );
+        } else {
+            batchBuffer.addSearch(queryText);
+        }
     }
 }

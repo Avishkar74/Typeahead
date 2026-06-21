@@ -17,7 +17,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,17 +73,18 @@ class BatchWriterTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFlushNewQuery() {
         Map<String, Integer> snapshot = Map.of("iphone", 5);
         when(batchBuffer.getAndClear()).thenReturn(snapshot);
-        when(queryRepository.findByQueryLower("iphone")).thenReturn(Optional.empty());
+        when(queryRepository.findAllByQueryLowerIn(any())).thenReturn(List.of());
 
         batchWriter.flush();
 
-        // 1. Verify Query save
-        ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-        verify(queryRepository, times(1)).save(queryCaptor.capture());
-        Query saved = queryCaptor.getValue();
+        // 1. Verify Query saveAll
+        ArgumentCaptor<List<Query>> queryCaptor = ArgumentCaptor.forClass(List.class);
+        verify(queryRepository, times(1)).saveAll(queryCaptor.capture());
+        Query saved = queryCaptor.getValue().get(0);
         assertThat(saved.getQueryLower()).isEqualTo("iphone");
         assertThat(saved.getGlobalCount()).isEqualTo(5);
         assertThat(saved.getWeeklyCount()).isEqualTo(5);
@@ -107,6 +107,7 @@ class BatchWriterTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFlushExistingQueryWithinWindow() {
         Map<String, Integer> snapshot = Map.of("iphone", 2);
         when(batchBuffer.getAndClear()).thenReturn(snapshot);
@@ -117,16 +118,15 @@ class BatchWriterTest {
         existing.setGlobalCount(100);
         existing.setWeeklyCount(10);
         existing.setDailyCount(5);
-        // last searched is 2 hours before the current virtual time (10:00:00)
         existing.setLastSearchedAt(LocalDateTime.of(2006, 6, 1, 8, 0, 0));
 
-        when(queryRepository.findByQueryLower("iphone")).thenReturn(Optional.of(existing));
+        when(queryRepository.findAllByQueryLowerIn(any())).thenReturn(List.of(existing));
 
         batchWriter.flush();
 
-        ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-        verify(queryRepository, times(1)).save(queryCaptor.capture());
-        Query saved = queryCaptor.getValue();
+        ArgumentCaptor<List<Query>> queryCaptor = ArgumentCaptor.forClass(List.class);
+        verify(queryRepository, times(1)).saveAll(queryCaptor.capture());
+        Query saved = queryCaptor.getValue().get(0);
         assertThat(saved.getGlobalCount()).isEqualTo(102);
         assertThat(saved.getWeeklyCount()).isEqualTo(12); // within 7 days
         assertThat(saved.getDailyCount()).isEqualTo(7);   // within 24 hours
@@ -135,6 +135,7 @@ class BatchWriterTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testFlushExistingQueryOutsideWindow() {
         Map<String, Integer> snapshot = Map.of("iphone", 2);
         when(batchBuffer.getAndClear()).thenReturn(snapshot);
@@ -145,16 +146,15 @@ class BatchWriterTest {
         existing.setGlobalCount(100);
         existing.setWeeklyCount(10);
         existing.setDailyCount(5);
-        // last searched is 8 days before (outside both 24h and 7d windows)
         existing.setLastSearchedAt(LocalDateTime.of(2006, 5, 24, 10, 0, 0));
 
-        when(queryRepository.findByQueryLower("iphone")).thenReturn(Optional.of(existing));
+        when(queryRepository.findAllByQueryLowerIn(any())).thenReturn(List.of(existing));
 
         batchWriter.flush();
 
-        ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-        verify(queryRepository, times(1)).save(queryCaptor.capture());
-        Query saved = queryCaptor.getValue();
+        ArgumentCaptor<List<Query>> queryCaptor = ArgumentCaptor.forClass(List.class);
+        verify(queryRepository, times(1)).saveAll(queryCaptor.capture());
+        Query saved = queryCaptor.getValue().get(0);
         assertThat(saved.getGlobalCount()).isEqualTo(102);
         assertThat(saved.getWeeklyCount()).isEqualTo(2); // reset to count
         assertThat(saved.getDailyCount()).isEqualTo(2);  // reset to count
@@ -164,8 +164,8 @@ class BatchWriterTest {
     void testFlushRollbackOnException() {
         Map<String, Integer> snapshot = Map.of("iphone", 5);
         when(batchBuffer.getAndClear()).thenReturn(snapshot);
-        when(queryRepository.findByQueryLower("iphone")).thenReturn(Optional.empty());
-        doThrow(new RuntimeException("DB offline")).when(queryRepository).save(any());
+        when(queryRepository.findAllByQueryLowerIn(any())).thenReturn(List.of());
+        doThrow(new RuntimeException("DB offline")).when(queryRepository).saveAll(any());
 
         assertThatThrownBy(() -> batchWriter.flush())
                 .isInstanceOf(RuntimeException.class)
@@ -176,11 +176,11 @@ class BatchWriterTest {
     void testRecovery() {
         UnbatchedQueryCount countStub = new UnbatchedQueryCountStub("java", 15L);
         when(searchLogRepository.findUnbatchedQueryCounts()).thenReturn(List.of(countStub));
-        when(queryRepository.findByQueryLower("java")).thenReturn(Optional.empty());
+        when(queryRepository.findAllByQueryLowerIn(any())).thenReturn(List.of());
 
         batchWriter.recover();
 
-        verify(queryRepository, times(1)).save(any(Query.class));
+        verify(queryRepository, times(1)).saveAll(any());
         verify(searchLogRepository, times(1)).markLogsAsBatched(
                 eq(List.of("java")),
                 eq(LocalDateTime.now(clock))

@@ -19,8 +19,7 @@ public class SystemConfig {
     private String configKey;
 
     @NotBlank
-    @Lob
-    @Column(name = "config_value", nullable = false)
+    @Column(name = "config_value", nullable = false, columnDefinition = "TEXT")
     private String configValue;
 
     @Column(name = "updated_at", nullable = false)
