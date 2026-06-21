@@ -6,6 +6,27 @@ This document summarizes every major design decision made for the Search Typeahe
 
 ---
 
+## Technology Stack
+
+### Frontend
+* React + Vite
+
+### Backend
+* Java 21
+* Spring Boot 3
+* Maven
+
+### Database
+* PostgreSQL
+
+### Cache
+* Redis (3 standalone nodes with client-side consistent hashing and volume persistence)
+
+### Deployment
+* Docker Compose
+
+---
+
 ## Decision 1: Database Architecture
 
 ### Choice: PostgreSQL (Self-hosted in Docker)
@@ -85,21 +106,23 @@ queries (
 
 ## Decision 4: Caching Strategy
 
-### Choice: Distributed Redis Cluster (3 nodes) with Consistent Hashing
+### Choice: Distributed Standalone Redis Nodes (3 nodes) with Client-Side Consistent Hashing
 
 **Key Parameters:**
 - **What to cache:** Prefix-based results (top 10 queries)
 - **Cache key:** `prefix:<prefix>:<ranking_type>`
 - **Cache value:** JSON array of top 10 suggestions
 - **TTL:** 1 hour
-- **Distribution:** 3 Redis nodes (6379, 6380, 6381)
-- **Hashing:** Consistent hashing (deterministic node selection)
+- **Distribution:** 3 standalone Redis nodes (6379, 6380, 6381)
+- **Hashing:** Client-side consistent hashing (deterministic node selection)
+- **Persistence**: Cached data is persisted via Docker volumes (survives restarts)
+- **Source of Truth**: PostgreSQL remains the single primary source of truth
 - **Expected hit rate:** 85%
 
 **Justification:**
 - Prefix-based caching covers ALL longer prefixes from one entry
-- 3 nodes provides fault tolerance (1 node down = system still works)
-- Consistent hashing minimizes rebalancing on failures
+- 3 standalone nodes provide fault tolerance (1 node down = system still works)
+- Client-side consistent hashing handles routing without server-side cluster overhead
 - 85% hit rate + <1ms Redis latency meets <10ms target
 - Blended latency: 85% × 1ms + 15% × 5ms = 1.75ms ✅
 
@@ -139,7 +162,7 @@ queries (
 ### Choice: In-Memory Buffer + Periodic Flush
 
 **Parameters:**
-- **Buffer location:** In-memory Python dictionary
+- **Buffer location:** In-memory ConcurrentHashMap buffer (in backend app)
 - **Flush interval:** 30 seconds OR 10 items (whichever comes first)
 - **Aggregation:** Count increments per query
 - **Write reduction:** 90% (11,000 ops → 1,100 ops)
@@ -156,7 +179,7 @@ Search → Add to buffer (~<1ms)
 **Failure Handling:**
 - In-memory buffer lost on crash (acceptable)
 - search_logs table has audit trail (recovery possible)
-- Rebatch on startup from unbatched entries
+- Recover on startup from unbatched logs (logged immediately to `search_logs` table at ingestion time)
 
 **Justification:**
 - Reduces DB write pressure dramatically
@@ -247,11 +270,10 @@ GET /cache/debug?prefix=<prefix>
    └─ Stores virtual time checkpoint
    └─ Stores configuration parameters
    └─ Single row operations
-
-4. batch_buffer (in-memory, not persistent)
-   └─ Holds searches between flushes
-   └─ Lost on app crash (acceptable)
 ```
+
+> [!NOTE]
+> The database contains only three physical tables: `queries`, `search_logs`, and `system_config`. The batch buffer is strictly an in-memory component (`BatchBuffer` in Java) and does not correspond to any persistent database table.
 
 ---
 
@@ -316,7 +338,7 @@ graph TB
    └─ Chose: Single table (better performance)
 
 3. Caching
-   ├─ Redis cluster topology
+   ├─ Redis standalone topology
    ├─ Consistent hashing strategy
    └─ Chose: 3 nodes with consistent hashing
 
@@ -327,7 +349,7 @@ graph TB
 5. Batch Writing
    ├─ Immediate vs Batched
    ├─ Location: DB vs In-memory vs Redis
-   └─ Chose: In-memory + disk persistence
+   └─ Chose: In-memory buffer + search_logs recovery
 
 6. Time Management
    ├─ Fixed interval vs Real elapsed
@@ -406,7 +428,7 @@ When presenting these design choices to your instructor:
 | Attribute | Rating | Evidence |
 |-----------|--------|----------|
 | **Performance** | Excellent | 2-5ms latency, 85%+ cache hits |
-| **Reliability** | Good | Redis cluster failover, search_logs backup |
+| **Reliability** | Good | Client-side routing with PostgreSQL fallback, search_logs backup |
 | **Maintainability** | Good | Clear indexing, simple schema |
 | **Scalability** | Good | Consistent hashing, can add nodes |
 | **Simplicity** | Excellent | Single table, minimal abstraction |

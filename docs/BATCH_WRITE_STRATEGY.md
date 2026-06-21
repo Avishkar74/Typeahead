@@ -284,19 +284,19 @@ What happens:
    └─ 20 entries for 'javascript'
 
 Recovery on restart:
-1. New app instance starts fresh
-2. search_logs still has unbatched entries
-3. Background job aggregates:
+1. New app instance starts fresh.
+2. `search_logs` table still contains the raw unbatched search events logged immediately at ingestion time.
+3. On application startup, the batch write scheduler triggers a recovery aggregation:
    ```sql
    SELECT query_lower, COUNT(*) 
    FROM search_logs 
    WHERE batched = FALSE 
    GROUP BY query_lower
    ```
-4. Updates queries table
-5. Marks as batched = TRUE
+4. Updates queries table statistics.
+5. Marks search logs as batched = TRUE.
 
-Result: NO DATA LOSS ✅
+Result: NO DATA LOSS ✅ (Since searches are logged immediately to `search_logs` and the buffer is recovered on startup, no search events are lost due to application restarts).
 ```
 
 ---

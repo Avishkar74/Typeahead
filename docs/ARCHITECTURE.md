@@ -4,6 +4,14 @@
 
 The Search Typeahead System is a high-performance, distributed caching solution for providing real-time search suggestions. It consists of three main components: API Layer, Caching Layer, and Data Layer.
 
+## Technology Stack
+
+* **Frontend**: React + Vite
+* **Backend**: Java 21, Spring Boot 3, Maven
+* **Database**: PostgreSQL
+* **Cache**: Redis (3 standalone nodes with client-side consistent hashing and volume persistence)
+* **Deployment**: Docker Compose
+
 ## System Architecture Diagram
 
 ```mermaid
@@ -17,7 +25,7 @@ graph TB
     end
     
     subgraph "Application Layer"
-        API["⚙️ FastAPI Backend<br/>- GET /suggest<br/>- POST /search<br/>- GET /cache/debug"]
+        API["⚙️ Spring Boot Backend<br/>- GET /suggest<br/>- POST /search<br/>- GET /cache/debug"]
     end
     
     subgraph "Processing Layer"
@@ -26,11 +34,11 @@ graph TB
     end
     
     subgraph "Cache Layer"
-        Redis["🔴 Redis Cluster<br/>- Node 1 (6379)<br/>- Node 2 (6380)<br/>- Node 3 (6381)<br/>- Consistent Hashing"]
+        Redis["🔴 Standalone Redis Nodes<br/>- Node 1 (6379)<br/>- Node 2 (6380)<br/>- Node 3 (6381)<br/>- Client-side Consistent Hashing"]
     end
     
     subgraph "Data Layer"
-        PG["🐘 PostgreSQL<br/>- queries table<br/>- search_logs table<br/>- system_config table<br/>- batch_buffer table"]
+        PG["🐘 PostgreSQL<br/>- queries table<br/>- search_logs table<br/>- system_config table"]
     end
     
     UI -->|Type: 'iph'| LB

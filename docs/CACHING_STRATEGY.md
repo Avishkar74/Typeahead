@@ -22,7 +22,7 @@ Redis latency: <1ms per read
 graph TB
     subgraph "Caching Decision Flow"
         A["User types: 'iph'"] --> B["Generate cache key:<br/>prefix:iph:trending"]
-        B --> C{"Check Redis<br/>Cluster"}
+        B --> C{"Check Redis Node"}
         
         C -->|Cache Hit| D["Return from cache<br/>&lt;1ms"]
         C -->|Cache Miss| E["Query PostgreSQL<br/>2-5ms"]
@@ -32,7 +32,7 @@ graph TB
         D --> G
     end
     
-    subgraph "Redis Cluster"
+    subgraph "Redis Standalone Nodes"
         H["Node 1<br/>6379"]
         I["Node 2<br/>6380"]
         J["Node 3<br/>6381"]
@@ -254,20 +254,16 @@ Scenario 3: Cache expires
 
 ---
 
-## Distributed Redis Cluster
+## Distributed Standalone Redis Nodes
 
-### Architecture: 3 Nodes with Consistent Hashing
+### Architecture: 3 Standalone Nodes with Consistent Hashing
 
 ```mermaid
 graph TB
-    subgraph "Redis Cluster Topology"
+    subgraph "Redis Node Topology"
         H["Node 1<br/>:6379<br/>Slot 0-5460"]
         I["Node 2<br/>:6380<br/>Slot 5461-10922"]
         J["Node 3<br/>:6381<br/>Slot 10923-16383"]
-        
-        H -.Replication.- H_B["Node 1<br/>Replica"]
-        I -.Replication.- I_B["Node 2<br/>Replica"]
-        J -.Replication.- J_B["Node 3<br/>Replica"]
     end
     
     K["Consistent Hashing<br/>Hash(prefix) % 16384<br/>= slot number"]
@@ -279,10 +275,15 @@ graph TB
     style H fill:#ffcdd2
     style I fill:#ffcdd2
     style J fill:#ffcdd2
-    style H_B fill:#f8bbd0
-    style I_B fill:#f8bbd0
-    style J_B fill:#f8bbd0
 ```
+
+> [!NOTE]
+> The assignment implementation simplifies the deployment to **3 standalone Redis nodes** running on ports 6379, 6380, and 6381. There is no active server-side Redis Cluster or replication configured; instead, client-side consistent hashing in the backend application is responsible for routing cache keys to the correct standalone node.
+
+### Cache Persistence & Source of Truth
+
+- **Single Source of Truth**: PostgreSQL remains the single, primary source of truth for all query statistics and raw logs.
+- **Persisted Cache Layer**: Standalone Redis nodes serve as a persistent cache layer. Cache data is persisted to disk using Docker volumes, ensuring the cache survives container restarts, which supports evaluation and demo scenarios without losing cache state.
 
 ### Why 3 Nodes?
 
@@ -295,7 +296,6 @@ Distribution:
 Fault Tolerance:
 ✅ If 1 node fails: 2 nodes still serve
 ✅ No single point of failure
-✅ Replication covers data loss
 
 Scalability:
 ✅ Easy to add 4th node later
