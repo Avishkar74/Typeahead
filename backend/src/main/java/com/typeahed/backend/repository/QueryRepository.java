@@ -14,5 +14,7 @@ public interface QueryRepository extends JpaRepository<Query, Long> {
 
     List<Query> findTop10ByQueryLowerStartingWithOrderByGlobalCountDesc(String prefix);
 
+    List<Query> findTop10ByOrderByTrendingScoreDesc();
+
     Optional<Query> findByQueryLower(String queryLower);
 }

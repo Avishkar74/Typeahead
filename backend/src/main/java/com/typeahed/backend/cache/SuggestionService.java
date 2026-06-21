@@ -43,8 +43,11 @@ public class SuggestionService {
         // 1. Try cache hit
         Optional<CacheValue> cached = cacheService.get(prefix, ranking);
         if (cached.isPresent()) {
+            CacheContext.setCacheHit(true);
             return cached.get().getResults();
         }
+
+        CacheContext.setCacheHit(false);
 
         // 2. Cache miss -> Fetch from PostgreSQL
         List<Query> dbQueries;
@@ -81,5 +84,18 @@ public class SuggestionService {
         cacheService.put(prefix, ranking, cacheValue, CACHE_TTL);
 
         return suggestions;
+    }
+
+    public List<SuggestionDto> getTrendingOverall() {
+        List<Query> dbQueries = queryRepository.findTop10ByOrderByTrendingScoreDesc();
+        return dbQueries.stream()
+                .map(q -> new SuggestionDto(
+                        q.getQueryText(),
+                        q.getGlobalCount(),
+                        q.getWeeklyCount(),
+                        q.getDailyCount(),
+                        q.getTrendingScore()
+                ))
+                .collect(Collectors.toList());
     }
 }
