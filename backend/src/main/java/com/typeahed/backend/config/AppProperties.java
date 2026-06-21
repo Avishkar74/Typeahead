@@ -12,6 +12,7 @@ public class AppProperties {
     private final Batch batch = new Batch();
     private final Redis redis = new Redis();
     private final VirtualTime virtualTime = new VirtualTime();
+    private final DatasetImport datasetImport = new DatasetImport();
 
     public Batch getBatch() {
         return batch;
@@ -23,6 +24,49 @@ public class AppProperties {
 
     public VirtualTime getVirtualTime() {
         return virtualTime;
+    }
+
+    public DatasetImport getDatasetImport() {
+        return datasetImport;
+    }
+
+    public static class DatasetImport {
+        private boolean enabled = false;
+        private int batchSize = 1000;
+        private String queriesFilePath = "dataset/queries_count.csv";
+        private String logsFilePath = "dataset/search_logs.csv";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getBatchSize() {
+            return batchSize;
+        }
+
+        public void setBatchSize(int batchSize) {
+            this.batchSize = batchSize;
+        }
+
+        public String getQueriesFilePath() {
+            return queriesFilePath;
+        }
+
+        public void setQueriesFilePath(String queriesFilePath) {
+            this.queriesFilePath = queriesFilePath;
+        }
+
+        public String getLogsFilePath() {
+            return logsFilePath;
+        }
+
+        public void setLogsFilePath(String logsFilePath) {
+            this.logsFilePath = logsFilePath;
+        }
     }
 
     public static class Batch {
