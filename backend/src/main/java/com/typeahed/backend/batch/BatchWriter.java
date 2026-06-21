@@ -1,5 +1,6 @@
 package com.typeahed.backend.batch;
 
+import com.typeahed.backend.cache.CacheService;
 import com.typeahed.backend.cache.RedisNodeRouter;
 import com.typeahed.backend.entity.Query;
 import com.typeahed.backend.repository.QueryRepository;
@@ -28,6 +29,7 @@ public class BatchWriter {
     private final SearchLogRepository searchLogRepository;
     private final VirtualTimeManager virtualTimeManager;
     private final RedisNodeRouter redisNodeRouter;
+    private final CacheService cacheService;
     private final Clock clock;
 
     public BatchWriter(BatchBuffer batchBuffer,
@@ -35,12 +37,14 @@ public class BatchWriter {
                        SearchLogRepository searchLogRepository,
                        VirtualTimeManager virtualTimeManager,
                        RedisNodeRouter redisNodeRouter,
+                       CacheService cacheService,
                        Clock clock) {
         this.batchBuffer = batchBuffer;
         this.queryRepository = queryRepository;
         this.searchLogRepository = searchLogRepository;
         this.virtualTimeManager = virtualTimeManager;
         this.redisNodeRouter = redisNodeRouter;
+        this.cacheService = cacheService;
         this.clock = clock;
     }
 
@@ -175,6 +179,8 @@ public class BatchWriter {
         for (String prefix : invalidatedPrefixes) {
             String node = redisNodeRouter.route(prefix);
             logger.info("Invalidating cache prefix '{}' on Redis node '{}'", prefix, node);
+            cacheService.delete(prefix, "trending");
+            cacheService.delete(prefix, "global");
         }
     }
 }

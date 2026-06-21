@@ -1,5 +1,6 @@
 package com.typeahed.backend.batch;
 
+import com.typeahed.backend.cache.CacheService;
 import com.typeahed.backend.cache.RedisNodeRouter;
 import com.typeahed.backend.entity.Query;
 import com.typeahed.backend.repository.QueryRepository;
@@ -33,6 +34,7 @@ class BatchWriterTest {
     private SearchLogRepository searchLogRepository;
     private VirtualTimeManager virtualTimeManager;
     private RedisNodeRouter redisNodeRouter;
+    private CacheService cacheService;
     private Clock clock;
     private BatchWriter batchWriter;
 
@@ -43,6 +45,7 @@ class BatchWriterTest {
         searchLogRepository = mock(SearchLogRepository.class);
         virtualTimeManager = mock(VirtualTimeManager.class);
         redisNodeRouter = mock(RedisNodeRouter.class);
+        cacheService = mock(CacheService.class);
         clock = Clock.fixed(Instant.parse("2026-06-22T00:00:00Z"), ZoneId.systemDefault());
 
         batchWriter = new BatchWriter(
@@ -51,6 +54,7 @@ class BatchWriterTest {
                 searchLogRepository,
                 virtualTimeManager,
                 redisNodeRouter,
+                cacheService,
                 clock
         );
 
