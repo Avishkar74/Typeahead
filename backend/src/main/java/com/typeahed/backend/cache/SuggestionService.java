@@ -36,10 +36,15 @@ public class SuggestionService {
     }
 
     public List<SuggestionDto> getSuggestions(String query, String rankingType) {
-        String prefix = (query != null) ? query.toLowerCase().trim() : "";
+        String prefix = normalizePrefix(query);
         String ranking = (rankingType != null && rankingType.equalsIgnoreCase(RANKING_GLOBAL)) 
                 ? RANKING_GLOBAL 
                 : RANKING_TRENDING;
+
+        if (!isSearchablePrefix(prefix)) {
+            CacheContext.setCacheHit(false);
+            return List.of();
+        }
 
         // 1. Try cache hit
         Optional<CacheValue> cached = cacheService.get(prefix, ranking);
@@ -54,10 +59,14 @@ public class SuggestionService {
     }
 
     public List<SuggestionDto> warmSuggestions(String query, String rankingType) {
-        String prefix = (query != null) ? query.toLowerCase().trim() : "";
+        String prefix = normalizePrefix(query);
         String ranking = (rankingType != null && rankingType.equalsIgnoreCase(RANKING_GLOBAL))
                 ? RANKING_GLOBAL
                 : RANKING_TRENDING;
+
+        if (!isSearchablePrefix(prefix)) {
+            return List.of();
+        }
 
         return loadAndCacheSuggestions(prefix, ranking);
     }
@@ -114,5 +123,13 @@ public class SuggestionService {
                 cachedAtTime.format(formatter) + "Z",
                 expiresAtTime.format(formatter) + "Z"
         );
+    }
+
+    private String normalizePrefix(String query) {
+        return (query != null) ? query.toLowerCase().trim() : "";
+    }
+
+    private boolean isSearchablePrefix(String prefix) {
+        return prefix != null && prefix.length() >= 3;
     }
 }

@@ -67,4 +67,36 @@ class DebugControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cache_hit").value(false));
     }
+
+    @Test
+    void testDebugCacheShortPrefixSkipsLookup() throws Exception {
+        ConsistentHashRing hashRing = mock(ConsistentHashRing.class);
+        when(redisNodeRouter.getHashRing()).thenReturn(hashRing);
+        when(redisNodeRouter.route("g")).thenReturn("localhost:6379");
+        when(hashRing.getSlot("g")).thenReturn(1);
+
+        mockMvc.perform(get("/api/debug/cache")
+                        .param("prefix", "g"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cache_hit").value(false));
+
+        verify(redisNodeRouter, times(1)).route("g");
+        verify(cacheService, never()).get(anyString(), anyString());
+    }
+
+    @Test
+    void testDebugCacheTwoCharacterPrefixSkipsLookup() throws Exception {
+        ConsistentHashRing hashRing = mock(ConsistentHashRing.class);
+        when(redisNodeRouter.getHashRing()).thenReturn(hashRing);
+        when(redisNodeRouter.route("go")).thenReturn("localhost:6379");
+        when(hashRing.getSlot("go")).thenReturn(2);
+
+        mockMvc.perform(get("/api/debug/cache")
+                        .param("prefix", "go"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cache_hit").value(false));
+
+        verify(redisNodeRouter, times(1)).route("go");
+        verify(cacheService, never()).get(anyString(), anyString());
+    }
 }

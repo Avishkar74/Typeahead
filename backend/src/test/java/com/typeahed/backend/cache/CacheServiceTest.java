@@ -76,6 +76,22 @@ class CacheServiceTest {
     }
 
     @Test
+    void testGetSingleCharacterPrefixIsRejected() {
+        Optional<CacheValue> result = cacheService.get("g", "trending");
+
+        assertThat(result).isEmpty();
+        verifyNoInteractions(redisTemplate, valueOperations);
+    }
+
+    @Test
+    void testGetTwoCharacterPrefixIsRejected() {
+        Optional<CacheValue> result = cacheService.get("go", "trending");
+
+        assertThat(result).isEmpty();
+        verifyNoInteractions(redisTemplate, valueOperations);
+    }
+
+    @Test
     void testPutCacheWrite() throws Exception {
         SuggestionDto dto = new SuggestionDto("iphone", 10, 5, 2, BigDecimal.valueOf(6.5));
         CacheValue value = new CacheValue("iph", "trending", List.of(dto), "2006-06-01T10:00:00Z", "2006-06-01T11:00:00Z");
@@ -90,9 +106,43 @@ class CacheServiceTest {
     }
 
     @Test
+    void testPutSingleCharacterPrefixIsNoOp() throws Exception {
+        SuggestionDto dto = new SuggestionDto("google", 10, 5, 2, BigDecimal.valueOf(6.5));
+        CacheValue value = new CacheValue("g", "trending", List.of(dto), "2006-06-01T10:00:00Z", "2006-06-01T11:00:00Z");
+
+        cacheService.put("g", "trending", value, Duration.ofHours(1));
+
+        verifyNoInteractions(redisTemplate, valueOperations);
+    }
+
+    @Test
+    void testPutTwoCharacterPrefixIsNoOp() throws Exception {
+        SuggestionDto dto = new SuggestionDto("google", 10, 5, 2, BigDecimal.valueOf(6.5));
+        CacheValue value = new CacheValue("go", "trending", List.of(dto), "2006-06-01T10:00:00Z", "2006-06-01T11:00:00Z");
+
+        cacheService.put("go", "trending", value, Duration.ofHours(1));
+
+        verifyNoInteractions(redisTemplate, valueOperations);
+    }
+
+    @Test
     void testDeleteCacheKey() {
         cacheService.delete("iph", "trending");
 
         verify(redisTemplate, times(1)).delete("prefix:iph:trending");
+    }
+
+    @Test
+    void testDeleteSingleCharacterPrefixIsNoOp() {
+        cacheService.delete("g", "trending");
+
+        verifyNoInteractions(redisTemplate, valueOperations);
+    }
+
+    @Test
+    void testDeleteTwoCharacterPrefixIsNoOp() {
+        cacheService.delete("go", "trending");
+
+        verifyNoInteractions(redisTemplate, valueOperations);
     }
 }

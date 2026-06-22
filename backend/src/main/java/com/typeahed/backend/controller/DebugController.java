@@ -38,7 +38,7 @@ public class DebugController {
         String normalized = (prefix != null) ? prefix.toLowerCase().trim() : "";
         String node = redisNodeRouter.route(normalized);
         int slot = redisNodeRouter.getHashRing().getSlot(normalized);
-        boolean cacheHit = cacheService.get(normalized, "trending").isPresent();
+        boolean cacheHit = normalized.length() >= 3 && cacheService.get(normalized, "trending").isPresent();
 
         CacheDebugResponseDto response = new CacheDebugResponseDto(normalized, node, slot, cacheHit);
         return ResponseEntity.ok(response);

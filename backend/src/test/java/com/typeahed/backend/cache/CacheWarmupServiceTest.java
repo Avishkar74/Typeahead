@@ -63,14 +63,14 @@ class CacheWarmupServiceTest {
 
         ArgumentCaptor<String> prefixCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> rankingCaptor = ArgumentCaptor.forClass(String.class);
-        verify(cacheService, times(6)).put(prefixCaptor.capture(), rankingCaptor.capture(), any(CacheValue.class), any(java.time.Duration.class));
+        verify(cacheService, times(4)).put(prefixCaptor.capture(), rankingCaptor.capture(), any(CacheValue.class), any(java.time.Duration.class));
 
         List<String> prefixes = prefixCaptor.getAllValues();
-        assertThat(prefixes).containsExactlyInAnyOrder("hi", "his", "hist", "hi", "his", "hist");
-        assertThat(new LinkedHashSet<>(prefixes)).containsExactly("hi", "his", "hist");
+        assertThat(prefixes).containsExactlyInAnyOrder("his", "hist", "his", "hist");
+        assertThat(new LinkedHashSet<>(prefixes)).containsExactly("his", "hist");
 
         List<String> rankings = rankingCaptor.getAllValues();
-        assertThat(rankings).containsExactlyInAnyOrder("trending", "global", "trending", "global", "trending", "global");
+        assertThat(rankings).containsExactlyInAnyOrder("trending", "global", "trending", "global");
 
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
         verify(queryRepository).findAll(pageableCaptor.capture());

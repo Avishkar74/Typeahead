@@ -87,7 +87,7 @@ public class CacheWarmupService {
         String normalized = queryLower.trim();
         int upperBound = Math.min(maxPrefixLength, normalized.length());
 
-        for (int length = 2; length <= upperBound; length++) {
+        for (int length = 3; length <= upperBound; length++) {
             prefixes.add(normalized.substring(0, length));
         }
     }

@@ -56,6 +56,26 @@ class SuggestionServiceTest {
     }
 
     @Test
+    void testGetSuggestionsSingleCharacterPrefixSkipsCacheAndDatabase() {
+        List<SuggestionDto> suggestions = suggestionService.getSuggestions("g", "trending");
+
+        assertThat(suggestions).isEmpty();
+        assertThat(CacheContext.getCacheHit()).isFalse();
+
+        verifyNoInteractions(cacheService, queryRepository);
+    }
+
+    @Test
+    void testGetSuggestionsTwoCharacterPrefixSkipsCacheAndDatabase() {
+        List<SuggestionDto> suggestions = suggestionService.getSuggestions("go", "trending");
+
+        assertThat(suggestions).isEmpty();
+        assertThat(CacheContext.getCacheHit()).isFalse();
+
+        verifyNoInteractions(cacheService, queryRepository);
+    }
+
+    @Test
     void testGetSuggestionsCacheMissTrending() {
         when(cacheService.get("iph", "trending")).thenReturn(Optional.empty());
 
@@ -94,6 +114,27 @@ class SuggestionServiceTest {
         assertThat(savedVal.getCachedAt()).isEqualTo("2026-06-22T12:00:00Z");
         assertThat(savedVal.getExpiresAt()).isEqualTo("2026-06-22T13:00:00Z");
         assertThat(savedVal.getResults()).hasSize(1);
+    }
+
+    @Test
+    void testGetSuggestionsThreeCharPrefixWorksNormally() {
+        when(cacheService.get("goo", "trending")).thenReturn(Optional.empty());
+
+        Query q = new Query();
+        q.setQueryText("google");
+        q.setQueryLower("google");
+        q.setGlobalCount(100);
+        q.setWeeklyCount(20);
+        q.setDailyCount(5);
+        q.setTrendingScore(BigDecimal.valueOf(65.5));
+
+        when(queryRepository.findTop10ByQueryLowerStartingWithOrderByTrendingScoreDesc("goo")).thenReturn(List.of(q));
+
+        List<SuggestionDto> suggestions = suggestionService.getSuggestions("goo", "trending");
+
+        assertThat(suggestions).hasSize(1);
+        verify(queryRepository, times(1)).findTop10ByQueryLowerStartingWithOrderByTrendingScoreDesc("goo");
+        verify(cacheService, times(1)).put(eq("goo"), eq("trending"), any(CacheValue.class), eq(Duration.ofHours(1)));
     }
 
     @Test

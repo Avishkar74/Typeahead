@@ -25,7 +25,7 @@ public class CacheService {
     }
 
     public Optional<CacheValue> get(String prefix, String rankingType) {
-        if (prefix == null || rankingType == null) {
+        if (!isSearchablePrefix(prefix) || rankingType == null) {
             return Optional.empty();
         }
 
@@ -48,7 +48,7 @@ public class CacheService {
     }
 
     public void put(String prefix, String rankingType, CacheValue value, Duration ttl) {
-        if (prefix == null || rankingType == null || value == null) {
+        if (!isSearchablePrefix(prefix) || rankingType == null || value == null) {
             return;
         }
 
@@ -69,7 +69,7 @@ public class CacheService {
     }
 
     public void delete(String prefix, String rankingType) {
-        if (prefix == null || rankingType == null) {
+        if (!isSearchablePrefix(prefix) || rankingType == null) {
             return;
         }
 
@@ -85,5 +85,9 @@ public class CacheService {
 
     private String buildCacheKey(String prefix, String rankingType) {
         return "prefix:" + prefix.toLowerCase().trim() + ":" + rankingType.toLowerCase().trim();
+    }
+
+    private boolean isSearchablePrefix(String prefix) {
+        return prefix != null && prefix.toLowerCase().trim().length() >= 3;
     }
 }
