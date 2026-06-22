@@ -2,6 +2,12 @@
 
 Search Typeahead System is a React + Vite + TypeScript frontend backed by a Spring Boot application with PostgreSQL, Redis, batch aggregation, and a virtual time subsystem.
 
+![alt text]({1BC5D588-021F-4C30-9639-8F9CC7F1316B}.png)
+
+![alt text]({0ADB2BEF-F9B2-4A55-8012-C1EB7C171C1F}.png)
+
+![alt text]({267BA5A5-EE1F-49C4-97CA-679BD74EE230}.png)
+
 ## Features
 
 - Single typeahead search box with live suggestions
