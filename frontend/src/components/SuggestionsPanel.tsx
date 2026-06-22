@@ -48,7 +48,7 @@ function SuggestionRow({ item, rank, maxScore, onClick }: {
 const SuggestionsPanel: FC<Props> = ({ data, loading, error, query, onSuggestionClick }) => {
   const trimmed = query.trim();
 
-  if (trimmed.length < 2) {
+  if (trimmed.length < 3) {
     return (
       <div className="panel suggestions-panel">
         <div className="panel-header">
@@ -56,7 +56,7 @@ const SuggestionsPanel: FC<Props> = ({ data, loading, error, query, onSuggestion
           <h2 className="panel-title">Suggestions</h2>
         </div>
         <div className="empty-state">
-          <p>Type at least 2 characters to see suggestions.</p>
+          <p>Type at least 3 characters to see suggestions.</p>
         </div>
       </div>
     );
