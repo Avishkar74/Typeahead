@@ -46,7 +46,9 @@ function SuggestionRow({ item, rank, maxScore, onClick }: {
 }
 
 const SuggestionsPanel: FC<Props> = ({ data, loading, error, query, onSuggestionClick }) => {
-  if (!query.trim()) {
+  const trimmed = query.trim();
+
+  if (trimmed.length < 2) {
     return (
       <div className="panel suggestions-panel">
         <div className="panel-header">
@@ -54,7 +56,7 @@ const SuggestionsPanel: FC<Props> = ({ data, loading, error, query, onSuggestion
           <h2 className="panel-title">Suggestions</h2>
         </div>
         <div className="empty-state">
-          <p>Type in the search box above to see suggestions</p>
+          <p>Type at least 2 characters to see suggestions.</p>
         </div>
       </div>
     );
@@ -90,6 +92,12 @@ const SuggestionsPanel: FC<Props> = ({ data, loading, error, query, onSuggestion
         <div className="error-state">
           <span className="error-icon">⚠️</span>
           <span>{error}</span>
+        </div>
+      )}
+
+      {!loading && !error && !data && (
+        <div className="empty-state">
+          <p>Suggestions will appear here once the backend responds.</p>
         </div>
       )}
 

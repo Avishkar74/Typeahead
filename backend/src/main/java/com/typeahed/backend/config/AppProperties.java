@@ -13,6 +13,7 @@ public class AppProperties {
     private final Redis redis = new Redis();
     private final VirtualTime virtualTime = new VirtualTime();
     private final DatasetImport datasetImport = new DatasetImport();
+    private final CacheWarmup cacheWarmup = new CacheWarmup();
 
     public Batch getBatch() {
         return batch;
@@ -28,6 +29,10 @@ public class AppProperties {
 
     public DatasetImport getDatasetImport() {
         return datasetImport;
+    }
+
+    public CacheWarmup getCacheWarmup() {
+        return cacheWarmup;
     }
 
     public static class DatasetImport {
@@ -111,6 +116,36 @@ public class AppProperties {
 
         public void setReferenceDate(String referenceDate) {
             this.referenceDate = referenceDate;
+        }
+    }
+
+    public static class CacheWarmup {
+        private boolean enabled = true;
+        private int maxQueries = 50000;
+        private int maxPrefixLength = 4;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getMaxQueries() {
+            return maxQueries;
+        }
+
+        public void setMaxQueries(int maxQueries) {
+            this.maxQueries = maxQueries;
+        }
+
+        public int getMaxPrefixLength() {
+            return maxPrefixLength;
+        }
+
+        public void setMaxPrefixLength(int maxPrefixLength) {
+            this.maxPrefixLength = maxPrefixLength;
         }
     }
 }

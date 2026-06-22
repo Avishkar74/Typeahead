@@ -42,6 +42,13 @@ export interface CacheDebugResponse {
   cache_hit: boolean;
 }
 
+export interface VirtualTimeResponse {
+  virtual_time: string;
+  reference_time: string;
+  real_time_elapsed_seconds: number;
+  batch_flush_increment_seconds: number;
+}
+
 // ─── API Error ────────────────────────────────────────────────────────────────
 
 export interface ApiError {

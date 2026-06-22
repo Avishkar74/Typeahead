@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,41 +50,16 @@ public class SuggestionService {
 
         CacheContext.setCacheHit(false);
 
-        // 2. Cache miss -> Fetch from PostgreSQL
-        List<Query> dbQueries;
-        if (ranking.equals(RANKING_GLOBAL)) {
-            dbQueries = queryRepository.findTop10ByQueryLowerStartingWithOrderByGlobalCountDesc(prefix);
-        } else {
-            dbQueries = queryRepository.findTop10ByQueryLowerStartingWithOrderByTrendingScoreDesc(prefix);
-        }
+        return loadAndCacheSuggestions(prefix, ranking);
+    }
 
-        // 3. Map to SuggestionDto
-        List<SuggestionDto> suggestions = dbQueries.stream()
-                .map(q -> new SuggestionDto(
-                        q.getQueryText(),
-                        q.getGlobalCount(),
-                        q.getWeeklyCount(),
-                        q.getDailyCount(),
-                        q.getTrendingScore()
-                ))
-                .collect(Collectors.toList());
+    public List<SuggestionDto> warmSuggestions(String query, String rankingType) {
+        String prefix = (query != null) ? query.toLowerCase().trim() : "";
+        String ranking = (rankingType != null && rankingType.equalsIgnoreCase(RANKING_GLOBAL))
+                ? RANKING_GLOBAL
+                : RANKING_TRENDING;
 
-        // 4. Populate cache
-        LocalDateTime cachedAtTime = LocalDateTime.now(clock);
-        LocalDateTime expiresAtTime = cachedAtTime.plus(CACHE_TTL);
-        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
-
-        CacheValue cacheValue = new CacheValue(
-                prefix,
-                ranking,
-                suggestions,
-                cachedAtTime.format(formatter) + "Z",
-                expiresAtTime.format(formatter) + "Z"
-        );
-
-        cacheService.put(prefix, ranking, cacheValue, CACHE_TTL);
-
-        return suggestions;
+        return loadAndCacheSuggestions(prefix, ranking);
     }
 
     public List<SuggestionDto> getTrendingOverall() {
@@ -97,5 +73,46 @@ public class SuggestionService {
                         q.getTrendingScore()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    private List<SuggestionDto> loadAndCacheSuggestions(String prefix, String ranking) {
+        List<Query> dbQueries = fetchRankedQueries(prefix, ranking);
+        List<SuggestionDto> suggestions = dbQueries.stream()
+                .map(toSuggestionDto())
+                .collect(Collectors.toList());
+
+        cacheService.put(prefix, ranking, buildCacheValue(prefix, ranking, suggestions), CACHE_TTL);
+        return suggestions;
+    }
+
+    private List<Query> fetchRankedQueries(String prefix, String ranking) {
+        if (RANKING_GLOBAL.equals(ranking)) {
+            return queryRepository.findTop10ByQueryLowerStartingWithOrderByGlobalCountDesc(prefix);
+        }
+        return queryRepository.findTop10ByQueryLowerStartingWithOrderByTrendingScoreDesc(prefix);
+    }
+
+    private Function<Query, SuggestionDto> toSuggestionDto() {
+        return q -> new SuggestionDto(
+                q.getQueryText(),
+                q.getGlobalCount(),
+                q.getWeeklyCount(),
+                q.getDailyCount(),
+                q.getTrendingScore()
+        );
+    }
+
+    private CacheValue buildCacheValue(String prefix, String ranking, List<SuggestionDto> suggestions) {
+        LocalDateTime cachedAtTime = LocalDateTime.now(clock);
+        LocalDateTime expiresAtTime = cachedAtTime.plus(CACHE_TTL);
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
+        return new CacheValue(
+                prefix,
+                ranking,
+                suggestions,
+                cachedAtTime.format(formatter) + "Z",
+                expiresAtTime.format(formatter) + "Z"
+        );
     }
 }

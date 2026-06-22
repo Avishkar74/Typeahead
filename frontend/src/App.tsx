@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import type { RankingMode } from './types/api';
 import { useSuggestions } from './hooks/useSuggestions';
+import { submitSearch } from './services/searchService';
 import Header from './components/Header';
 import SearchBox from './components/SearchBox';
 import SuggestionsPanel from './components/SuggestionsPanel';
-import SearchSubmission from './components/SearchSubmission';
-import TrendingPanel from './components/TrendingPanel';
 import VirtualTimePanel from './components/VirtualTimePanel';
 import CacheDebugPanel from './components/CacheDebugPanel';
 import './index.css';
@@ -14,9 +13,33 @@ function App() {
   const [query, setQuery] = useState('');
   const [ranking, setRanking] = useState<RankingMode>('trending');
   const { data, loading, error } = useSuggestions(query, ranking, 300);
+  const [searchMessage, setSearchMessage] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  const handleSearch = async (term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setSearchLoading(true);
+    setSearchError(null);
+    setSearchMessage(null);
+
+    try {
+      const response = await submitSearch(trimmed);
+      setSearchMessage(response.message);
+    } catch (err: unknown) {
+      setSearchError(err instanceof Error ? err.message : 'Failed to submit search');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   const handleSuggestionClick = (selected: string) => {
     setQuery(selected);
+    void handleSearch(selected);
   };
 
   return (
@@ -24,11 +47,10 @@ function App() {
       <Header />
 
       <main className="app-main">
-        {/* ─── Search Typeahead Demo ─── */}
         <section className="demo-section">
           <div className="section-label">
             <span className="section-number">01</span>
-            <span>Search Typeahead Demo</span>
+            <span>Search Typeahead</span>
           </div>
           <div className="demo-card">
             <SearchBox
@@ -36,8 +58,14 @@ function App() {
               ranking={ranking}
               onQueryChange={setQuery}
               onRankingChange={setRanking}
-              onSubmit={() => {/* suggestions auto-show */}}
+              onSubmit={() => void handleSearch(query)}
             />
+            {(searchMessage || searchError || searchLoading) && (
+              <div className={`feedback ${searchError ? 'error-state' : searchLoading ? 'loading-state' : 'success-feedback'}`}>
+                {searchLoading && <div className="spinner" />}
+                <span>{searchError ?? searchMessage ?? 'Submitting search…'}</span>
+              </div>
+            )}
             <SuggestionsPanel
               data={data}
               loading={loading}
@@ -48,35 +76,14 @@ function App() {
           </div>
         </section>
 
-        {/* ─── Bottom Grid ─── */}
         <div className="bottom-grid">
           <section className="grid-cell">
-            <div className="section-label">
-              <span className="section-number">02</span>
-              <span>Submit Search</span>
-            </div>
-            <SearchSubmission />
-          </section>
-
-          <section className="grid-cell">
-            <div className="section-label">
-              <span className="section-number">03</span>
-              <span>Trending</span>
-            </div>
-            <TrendingPanel />
-          </section>
-
-          <section className="grid-cell">
-            <div className="section-label">
-              <span className="section-number">04</span>
-              <span>Virtual Time</span>
-            </div>
             <VirtualTimePanel />
           </section>
 
           <section className="grid-cell">
             <div className="section-label">
-              <span className="section-number">05</span>
+              <span className="section-number">02</span>
               <span>Cache Debug</span>
             </div>
             <CacheDebugPanel />
@@ -85,9 +92,9 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <span>Search Typeahead System — HLD Assignment</span>
+        <span>Search Typeahead System</span>
         <span className="footer-sep">·</span>
-        <span>React + Spring Boot + Redis × 3 + PostgreSQL</span>
+        <span>Premium SaaS interface</span>
       </footer>
     </div>
   );

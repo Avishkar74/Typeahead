@@ -39,6 +39,14 @@ const SearchBox: FC<Props> = ({ query, ranking, onQueryChange, onRankingChange, 
           maxLength={255}
           aria-label="Search query"
         />
+        <button
+          type="button"
+          className="search-submit-btn"
+          onClick={onSubmit}
+          aria-label="Submit search"
+        >
+          Search
+        </button>
         {query && (
           <button
             type="button"

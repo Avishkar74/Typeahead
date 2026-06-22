@@ -40,6 +40,11 @@ app:
       - localhost:6381
   virtual-time:
     reference-date: "2006-05-31T23:59:56"
+  cache:
+    warmup:
+      enabled: true
+      max-queries: 50000
+      max-prefix-length: 4
   dataset-import:
     enabled: false
     queries-file-path: "dataset/queries_count.csv"

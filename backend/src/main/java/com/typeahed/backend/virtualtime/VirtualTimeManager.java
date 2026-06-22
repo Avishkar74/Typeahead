@@ -39,6 +39,11 @@ public class VirtualTimeManager {
         return appStartRealTime;
     }
 
+    public synchronized long getElapsedRealSeconds() {
+        Duration elapsed = Duration.between(appStartRealTime, LocalDateTime.now(clock));
+        return Math.max(0, elapsed.getSeconds());
+    }
+
     public synchronized void advanceVirtualTime(Duration duration) {
         if (duration != null) {
             this.savedVirtualTime = this.savedVirtualTime.plus(duration);

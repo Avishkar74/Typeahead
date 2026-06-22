@@ -18,7 +18,7 @@ export function useSuggestions(query: string, ranking: RankingMode, debounceMs =
     const trimmed = debouncedQuery.trim();
     abortRef.current?.abort();
 
-    if (!trimmed) {
+    if (trimmed.length < 2) {
       return;
     }
 

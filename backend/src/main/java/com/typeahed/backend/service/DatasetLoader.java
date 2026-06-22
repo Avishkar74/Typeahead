@@ -10,6 +10,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.core.annotation.Order;
+import org.springframework.core.Ordered;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -44,6 +46,7 @@ public class DatasetLoader {
         this.searchLogRepository = searchLogRepository;
     }
 
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         if (!appProperties.getDatasetImport().isEnabled()) {
